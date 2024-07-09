@@ -7,6 +7,7 @@ db2ver: V11.5     #V11.1, V11.5
 db2_software_path: /root/db2software
 db2_binary: v11.5.7_linuxx64_universal_fixpack.tar.gz
 db2sw_type: universal
+binaries_host: 192.168.29.28
 
 ## Crate Instance Vars
 instance_user: db2inst1

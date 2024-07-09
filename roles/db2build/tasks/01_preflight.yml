@@ -8,8 +8,16 @@
     - name: Create - Directory Structure
       file: path="{{ item }}" state='directory' owner='{{ instance_user }}' group="{{ instance_group }}" mode='0755'
       with_items: 
-        - "{{ dirstocreate }}"
         - "{{ db2_dirs }}"
+      tags: createdirs
+
+    - name: Create - dirstocreate with 777 permission
+      file: 
+        path: "{{ item }}" 
+        state: directory  
+        mode: '0777'
+      with_items: 
+        - "{{ dirstocreate }}"
       tags: createdirs
 
     - name: Add - Instance port number to /etc/services

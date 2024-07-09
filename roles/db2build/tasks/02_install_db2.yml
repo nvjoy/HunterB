@@ -5,22 +5,18 @@
     #     dest: "{{ tgtdir }}/{{ db2_binary }}"
     #   delegate_to: 192.168.29.28
     #   tags: copydb2binaries
-    - name: Copy DB2 binaries from 192.168.29.28 server to target servers
-      fetch:
-        src: "{{ tgtdir }}/{{ db2_binary }}"
-        dest: "{{ local_temp_dir }}/{{ db2_binary }}"
-        flat: yes
-      delegate_to: 192.168.29.28
-      tags: fetchdb2binaries
+    # - name: Copy DB2 binaries from 192.168.29.28 server to target servers
+    #   copy:
+    #     src: "{{ db2_software_path }}/{{ db2_binary }}"
+    #     dest: "{{ tgtdir }}/{{ db2_binary }}"
+    #   delegate_to: 192.168.29.28
+    #   tags: fetchdb2binaries
 
-    - name: Distribute DB2 binaries to target servers
-      copy:
-        src: "{{ local_temp_dir }}/{{ db2_binary }}"
-        dest: "{{ tgtdir }}/{{ db2_binary }}"
-      with_items: "{{ target_servers }}"
-      delegate_to: "{{ item }}"
-      tags: copydb2binaries
 
+    - name: Copy DB2 binaries from 192.168.29.28 to target servers using rsync
+      command: rsync -avz {{ db2_software_path }}/{{ db2_binary }} {{ ansible_user }}@{{ inventory_hostname }}:{{ tgtdir }}/{{ db2_binary }}
+      delegate_to: "{{ binaries_host }}"
+      tags: rsyncdb2binaries
 
     - name: Untar DB2 binaries
       unarchive:
