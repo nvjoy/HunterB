@@ -25,6 +25,12 @@
         remote_src: yes
       tags: untardb2binaries
 
+    - name: Install mksh package
+      yum:
+        name: mksh
+        state: present
+      tags: installmksh
+
     - name: Install DB2 software
       shell: |
               INSTALL_TSAMP="{{ install_tsamp }}"
