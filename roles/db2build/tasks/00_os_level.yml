@@ -11,5 +11,5 @@
         password: "{{ 'db2' | password_hash('sha512') }}"
         state: present
       with_items:
-        - { name: "{{ instace_user }}" }
+        - { name: "{{ instance_user }}" }
         - { name: "{{ fenced_user }}" }

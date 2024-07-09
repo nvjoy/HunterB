@@ -1,6 +1,6 @@
 ---
 # vars file for db2_build
-target_servers: all
+target_servers: db2test
 tgtdir: /tmp/db2_build
 db2ver: V11.5     #V11.1, V11.5
 
@@ -9,7 +9,7 @@ db2_binary: v11.5.7_linuxx64_universal_fixpack.tar.gz
 db2sw_type: universal
 
 ## Crate Instance Vars
-instace_user: db2inst1
+instance_user: db2inst1
 fenced_user: db2fenc1
 instance_group: db2iadm1
 instance_port: 60000

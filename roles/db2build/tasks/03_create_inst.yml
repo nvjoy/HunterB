@@ -1,7 +1,7 @@
 ---
     - name: "Create DB2 Instance ({{ instid }})"
       shell: |
-              /opt/IBM/db2/{{ db2ver }}/instance/db2icrt -u {{ fencid }} {{ instid }} | tee {{ logsdir }}/db2_create_inst_{{ instid }}_{{ inventory_hostname }}.log 2>&1
+              /opt/IBM/db2/{{ db2ver }}/instance/db2icrt -u {{ fenced_user }} {{ instance_user }} | tee {{ logsdir }}/db2_create_inst_{{ instid }}_{{ inventory_hostname }}.log 2>&1
       args:
         executable: /bin/bash
       register: db2icrt

@@ -29,7 +29,7 @@
       register: inst_cfg
       failed_when: inst_cfg.rc > 1
       become: true
-      become_user: "{{ instid }}"
+      become_user: "{{ instance_user }}"
       become_method: sudo
 
     - name: Instance Config Log
