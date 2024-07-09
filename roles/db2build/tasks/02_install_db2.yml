@@ -3,7 +3,9 @@
       copy:
         src: "{{ db2_software_path }}/{{ db2_binary }}"
         dest: "{{ tgtdir }}/{{ db2_binary }}"
+      delegate_to: 192.168.29.28
       tags: copydb2binaries
+
 
     - name: Untar DB2 binaries
       unarchive:
