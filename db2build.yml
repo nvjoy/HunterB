@@ -7,6 +7,7 @@
   gather_facts: true
   become: true
   become_user: "{{ ansible_user }}"
+  become_method: sudo
 
   roles:
     - db2build
