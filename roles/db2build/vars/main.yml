@@ -1,6 +1,6 @@
 ---
 # vars file for db2_build
-tgt_hosts: all
+target_servers: all
 tgtdir: /tmp/db2_build
 db2ver: V11.5     #V11.1, V11.5
 
