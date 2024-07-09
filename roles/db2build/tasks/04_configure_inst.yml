@@ -1,0 +1,37 @@
+---
+    - name: "Configure DB2 Instance ({{ instid }})"
+      shell: |
+              LOG="{{ logsdir }}/configure_inst_{{ instid }}_{{ inventory_hostname }}_$(date +'%Y%m%d%H%M').log" 2>&1
+              HNAME=$(hostname -s)
+              if [[ -f $HOME/sqllib/db2profile ]]; then
+                . $HOME/sqllib/db2profile
+              fi
+              db2set DB2_INLIST_TO_NLJN=YES
+              db2set DB2_MINIMIZE_LISTPREFETCH=ON
+              db2set DB2_EVALUNCOMMITTED=YES
+              db2set DB2_SKIPDELETED=ON
+              db2set DB2COMM=TCPIP
+              db2set DB2AUTOSTART=NO
+              db2set DB2SYSTEM=${HNAME}
+
+              db2 -v "UPDATE DBM CFG USING SVCENAME db2c_{{ instid }}" | tee -a ${LOG}
+              db2stop | tee -a ${LOG}
+              ipclean -a | tee -a ${LOG}
+              db2start | tee -a ${LOG}
+              echo "" | tee -a ${LOG}
+              db2set -all | tee -a ${LOG}
+              echo ""| tee -a ${LOG}
+              db2level | tee -a ${LOG}
+              echo ""
+              db2licm -s | tee -a ${LOG} 
+      args:
+        executable: /bin/bash
+      register: inst_cfg
+      failed_when: inst_cfg.rc > 1
+      become: true
+      become_user: "{{ instid }}"
+      become_method: sudo
+
+    - name: Instance Config Log
+      debug: msg="{{ inst_cfg.stdout_lines }}"
+      when: show_log | bool

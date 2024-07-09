@@ -1,0 +1,95 @@
+---
+### This is main playbook and will call other tasks
+### This playbook includes below operations:
+### 1. Validate Oracle Home and create Temp folder on the endpoint
+### 2. Unarchive Oracle PSU Patch and OPatch utility Patch file on the endpoint
+### 3. Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+### 4. Gather DB Info and PrePatch validation
+### 5. Backup Oracle Home and Oracle OPatch utility
+### 6. DB objects invalid check and recompile. Check status of dba_registry before Patching
+### 7. Perform PSU Patch apply and Post Patch activity
+### 8. DB objects invalid check and recompile. Check status of dba_registry after Patching
+### 9. Gather SQL Patch information from db patch registry
+
+- name: Block for Oracle PSU Patch apply on standalone endpoints
+  block:
+    - name: Validate Tower credentials
+      include_tasks: tower_cred_validate.yml
+
+    - name: gather facts
+      ansible.builtin.setup:
+        gather_subset: "!all"
+
+    - name: environment Details
+      set_fact:
+        msg: |
+          Host Name: "{{ ansible_hostname }}"
+          OS Name: "{{ ansible_facts['os_family'] }}"
+          OS Version: "{{ ansible_facts['distribution_version'] }}"
+
+    - name: Print fail status
+      set_fact:
+        fail_message: |
+           Job Id: {{ tower_job_id }}
+           Host Name: {{ ansible_hostname }}
+           Oracle Database PSU Patching aborted
+           Refer log '/ora/expimp/ansible_patch_oracle.log' for complete Patch process on the endpoints
+
+    - name: Block to perform Oracle PSU Patch apply on standalone endpoints
+      block:
+        - name: Validate Oracle Home and create Temp folder on the endpoint
+          include_tasks: db_list_create_temp.yml
+
+        - name: Unarchive Oracle PSU Patch and OPatch utility Patch file on the endpoint
+          include_tasks: unarchive_psu_patch_file.yml
+          when: (unarchive_patch_file_required | bool) and (ora_unarchive_process_proceed | bool)
+
+        - name: Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+          include_tasks: unarchive_opatch_utility_patch_file.yml
+          when: (ora_opatch_utility_unzip_required | bool) and (ora_unarchive_process_proceed | bool)
+
+        - name: Gather DB Info and PrePatch validation
+          include_tasks: db_info_prepatch_validation.yml
+          when: ora_gather_db_info | bool
+
+        - name: Backup Oracle Home and Oracle OPatch utility
+          include_tasks: backup_home_opatch.yml
+          when: (ora_backup_required | bool) and (ora_invalid_check_proceed | bool)
+
+        - name: DB objects invalid check and recompile. Check status of dba_registry before Patching
+          include_tasks: db_object_registry_validate.yml
+          when: ora_invalid_check_proceed | bool
+
+        - name: Perform PSU Patch apply and Post Patch activity
+          include_tasks: psu_patch_apply_postpatch_check.yml
+          when: ora_patch_apply_proceed | bool
+
+        - name: DB objects invalid check and recompile. Check status of dba_registry after Patching
+          include_tasks: db_object_registry_validate.yml
+          when: ora_invalid_check_proceed | bool
+
+        - name: Gather Patch information from db patch registry
+          include_tasks: db_sqlregistry_validate.yml
+          when: ora_dba_sqlregistry_validate_proceed | bool
+
+        - name: Block for Oracle PSU Patching success report
+          block:
+            - name: Print Final status post successful Oracle PSU Patch activity
+              set_fact:
+                exec_message: |
+                  Job Id: {{ tower_job_id }}
+                  Oracle Database PSU Patching succeeded
+                  Host Name: {{ ansible_hostname }}
+                  PSU Patch version: {{ oracle_psu_patch_version }}
+                  Oracle Home Patched: {{ ora_home }}
+                  Refer log '/ora/expimp/ansible_patch_oracle.log' for complete patch process on the endpoint
+
+            - name: Returncode for Final status post successful Oracle PSU Patch activity
+              include_role:
+                name: returncode
+              vars:
+                rc_success: true
+                rc_message: Oracle Database PSU Patching succeeded
+          when: ora_psu_patch_suceeded | bool
+
+      when: not(cancel_execution | bool)

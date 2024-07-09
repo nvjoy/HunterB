@@ -1,0 +1,70 @@
+---
+    - name: "Create or Configure DB2 Database(s)"
+      shell: |
+              HNAME=$(hostname -s)
+              DBNAME="{{ item }}"
+              DB2INST="{{ instid }}"
+              LOG="{{ logsdir }}/configure_db_${DBNAME}_{{ inventory_hostname }}_$(date +'%Y%m%d%H%M').log" 2>&1
+              ALLDBSLOG="{{ logsdir }}/configure_alldbs_{{ inventory_hostname }}_$(date +'%Y%m%d').log" 2>&1
+              if [[ -f $HOME/sqllib/db2profile ]]; then
+                . $HOME/sqllib/db2profile
+              fi
+
+              echo "Creating Database - ${DBNAME}" | tee -a ${LOG} | tee -a ${ALLDBSLOG}
+              echo "" | tee -a ${LOG} | tee -a ${ALLDBSLOG}
+
+              db2 -v "CREATE DATABASE ${DBNAME}
+              AUTOMATIC STORAGE YES
+              ON '/DB/DB2/DATA0001',
+                '/DB/DB2/DATA0002',
+                '/DB/DB2/DATA0003',
+                '/DB/DB2/DATA0004'
+              DBPATH ON '/DB/DB2/database/'
+              USING CODESET UTF-8 TERRITORY US
+              COLLATE USING UCA400_NO
+              PAGESIZE 8192
+              DFT_EXTENT_SZ 32
+              CATALOG TABLESPACE MANAGED BY AUTOMATIC STORAGE
+              EXTENTSIZE 4
+              AUTORESIZE YES
+              INITIALSIZE 32 M
+              MAXSIZE NONE
+              TEMPORARY TABLESPACE MANAGED BY AUTOMATIC STORAGE
+              EXTENTSIZE 32
+              FILE SYSTEM CACHING
+              USER TABLESPACE MANAGED BY AUTOMATIC STORAGE
+              EXTENTSIZE 32
+              AUTORESIZE YES
+              INITIALSIZE 32 M
+              MAXSIZE NONE" | tee -a ${LOG} | tee -a ${ALLDBSLOG}
+
+              NFS_PATH=$(df -m | grep -i efs | awk '{print $(NF)}')
+
+              mkdir -p /DB/DB2/ACTIVE_LOGS/${HNAME}/DB2/${DB2INST}/${DBNAME}
+              mkdir -p ${NFS_PATH}/ODX-Backups/${HNAME}/DB2/${DB2INST}/${DBNAME}/archive_logs
+
+              db2 -v "UPDATE DB CFG FOR ${DBNAME} using NEWLOGPATH /DB/DB2/ACTIVE_LOGS/${HNAME}/DB2/${DB2INST}/${DBNAME}" | tee -a ${LOG} | tee -a ${ALLDBSLOG}
+              db2 -v "UPDATE DB CFG FOR ${DBNAME} using LOGARCHMETH1 DISK:${NFS_PATH}/ODX-Backups/${HNAME}/DB2/${DB2INST}/${DBNAME}/archive_logs" | tee -a ${LOG} | tee -a ${ALLDBSLOG}
+              db2 -v "UPDATE DB CFG FOR ${DBNAME} using LOGINDEXBUILD ON" | tee -a ${LOG} | tee -a ${ALLDBSLOG}
+
+              db2 -v "backup db ${DBNAME} to /dev/null" | tee -a ${LOG} | tee -a ${ALLDBSLOG}
+              db2 -v "activate db ${DBNAME}" | tee -a ${LOG} | tee -a ${ALLDBSLOG}
+
+      args:
+        executable: /bin/bash
+      register: db_cfg
+      failed_when: db_cfg.rc > 1
+      loop: "{{ dbname }}"
+      become: true
+      become_user: "{{ instid }}"
+      become_method: sudo
+
+    - name: Read log
+      shell: |
+              CURDATE=$(date +'%Y%m%d')
+              cat {{ logsdir }}/configure_alldbs_{{ inventory_hostname }}_${CURDATE}.log
+      register: cmdout
+
+    - name: Database Config Log
+      debug: msg="{{ cmdout.stdout_lines }}"
+      when: show_log | bool

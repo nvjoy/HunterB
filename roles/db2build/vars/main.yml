@@ -1,0 +1,29 @@
+---
+# vars file for db2_build
+tgt_hosts: all
+tgtdir: /tmp/db2_build
+db2ver: V11.5     #V11.1, V11.5
+
+db2_software_path: /root/db2software
+db2_binary: v11.5.7_linuxx64_universal_fixpack.tar.gz
+db2sw_type: universal
+
+## Crate Instance Vars
+instace_user: db2inst1
+fenced_user: db2fenc1
+instance_group: db2iadm1
+instance_port: 60000
+
+## Databases to Create
+dbname:
+    - TESTDB
+    - SAMPLEDB
+
+create_dirs: yes
+install_db2: yes
+install_tsamp: yes
+create_inst: yes
+configure_inst: yes
+create_config_db: yes
+
+show_log: yes

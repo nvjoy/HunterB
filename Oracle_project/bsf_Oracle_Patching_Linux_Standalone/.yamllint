@@ -1,0 +1,12 @@
+---
+extends: default
+rules:
+  # Adding comma check to match Galaxy standards
+  commas: {min-spaces-after: 1}
+  indentation:
+    # Setting to 'consistent' due to automated modification of meta/main.yml
+    # that doesn't indent array values
+    indent-sequences: consistent
+  line-length:
+    max: 100
+    level: warning

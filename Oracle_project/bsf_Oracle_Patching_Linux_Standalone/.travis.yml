@@ -1,0 +1,43 @@
+---
+sudo: required
+
+services:
+  - docker
+
+language: python
+
+python:
+  - "2.7"
+  - "3.6"
+  - "3.7"
+  - "3.8"
+
+before_install:
+  - sudo add-apt-repository -y ppa:rmescandon/yq
+  - sudo apt update
+  - sudo apt install yq -y
+
+install:
+  - pip install molecule yamllint ansible
+
+before_script:
+  - export COLLECTION_NAMESPACE=$(yq r galaxy.yml namespace)
+  - export COLLECTION_NAME=$(yq r galaxy.yml name)
+  - export REPO_CLONE_FOLDERNAME=${PWD##*/}
+  # Create folder structure required by ansible-test and other tooling
+  - cd ..
+  - mkdir -p ansible_collections/$COLLECTION_NAMESPACE
+  - mv $REPO_CLONE_FOLDERNAME ansible_collections/$COLLECTION_NAMESPACE/$COLLECTION_NAME
+  - cd ansible_collections/$COLLECTION_NAMESPACE/$COLLECTION_NAME
+  # Fake install cloned collection (required for molecule)
+  - mkdir -p $HOME/.ansible/collections/$COLLECTION_NAMESPACE
+  - ln -s ansible_collections/$COLLECTION_NAMESPACE/$COLLECTION_NAME $HOME/.ansible/collections/$COLLECTION_NAMESPACE/$COLLECTION_NAME
+
+script:
+  # Ansible sanity checks
+  - ansible-test sanity --docker -v --color --python $TRAVIS_PYTHON_VERSION
+  # Ansible integration tests
+  - ansible-test integration --docker -v --color --retry-on-error --python $TRAVIS_PYTHON_VERSION --continue-on-error --diff --coverage
+  - ansible-test coverage xml -v --requirements --group-by command --group-by version
+  # Ansible Molecule tests
+  - molecule test

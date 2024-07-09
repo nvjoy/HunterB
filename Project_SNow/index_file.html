@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Hosting</title>
+</head>
+<body>
+    <h1>Welcome to the Image Hosting Web App</h1>
+    <img src="{{ url_for('static', filename='images/SGR08219.JPG') }}" alt="Example Image">
+
+    <h2>Update Work Notes</h2>
+    <form id="work-notes-form">
+        <label for="incident_id">Incident ID:</label>
+        <input type="text" id="incident_id" name="incident_id" required>
+        <label for="prompt">Prompt:</label>
+        <input type="text" id="prompt" name="prompt" required>
+        <button type="submit">Update Work Notes</button>
+    </form>
+
+    <h2>Close Incident</h2>
+    <form id="close-incident-form">
+        <label for="incident_id_close">Incident ID:</label>
+        <input type="text" id="incident_id_close" name="incident_id_close" required>
+        <button type="submit">Close Incident</button>
+    </form>
+
+    <script>
+        document.getElementById('work-notes-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const incident_id = document.getElementById('incident_id').value;
+            const prompt = document.getElementById('prompt').value;
+            const response = await fetch('/update_work_notes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ incident_id, prompt })
+            });
+            const result = await response.json();
+            alert(JSON.stringify(result));
+        });
+
+        document.getElementById('close-incident-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const incident_id = document.getElementById('incident_id_close').value;
+            const response = await fetch('/close_incident', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ incident_id })
+            });
+            const result = await response.json();
+            alert(JSON.stringify(result));
+        });
+    </script>
+</body>
+</html>

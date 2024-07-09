@@ -1,0 +1,79 @@
+---
+# This playbook will perform below operations:
+# 1. Get Invalid objects details from the Database
+# 2. Get status of Database registry from the Database
+- name: Block to Get Invalid objects details from the Database
+  block:
+    - name: Get Invalid objects details from the Database
+      oraclepatch:
+        oratask: getdbobjectinvalids
+        dbdict: "{{ ora_database_dict }}"
+        oratemp: "{{ ora_tempdir }}"
+      register: getdbobjectinvalids
+      become: yes
+      become_user: "{{ oracleuser }}"
+      failed_when: 'getdbobjectinvalids.stdout != ""'
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_dba_registry_validate_proceed: true
+  rescue:
+    - name: print fail msg for Get Invalid objects details from the Database
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Failed to get Invalid objects details from the database. Verify logfile and perform correction
+          {{ getdbobjectinvalids.stdout_lines | to_yaml | replace('\\t','') | replace('\t','') }}
+
+    - name: Returncode for Get Invalid objects details from the Database
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 310
+        rc_message: |
+          {{ fail_message }}
+          Failed to get Invalid objects details from the database. Verify logfile and perform correction
+          Error for Inavlid objects:
+          {{ getdbobjectinvalids.stdout_lines | to_yaml | replace('\\t','') | replace('\t','') }}
+
+- name: Block to Get status of Database registry from the Database
+  block:
+    - name: Get status of Database registry from the Database
+      oraclepatch:
+        oratask: getdbregistryvalidate
+        dbdict: "{{ ora_database_dict }}"
+        oratemp: "{{ ora_tempdir }}"
+      register: oradbregistryvalidate
+      become: yes
+      become_user: "{{ oracleuser }}"
+      failed_when: ((oradbregistryvalidate.stdout | regex_findall('INVALID') | length) != 0) or
+                    (oradbregistryvalidate is undefined)
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_patch_apply_proceed: true
+        ora_dba_sqlregistry_validate_proceed: true
+
+  rescue:
+    - name: print fail msg for dba registry
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          One or more options in DBA registry is in Invalid status.
+          {{ oradbregistryvalidate.stdout_lines | to_yaml | replace('\t','') | replace('\\t','') }}
+
+    - name: Returncode to Get status of Database registry from the Database
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 311
+        rc_message: |
+          {{ fail_message }}
+          One or more options in DBA registry is in Invalid status. Verify logfile for more information.
+          Error for DBA Registry status:
+          {{ oradbregistryvalidate.stdout_lines | to_yaml | replace('\t','') | replace('\\t','') }}
+  when: ora_dba_registry_validate_proceed | bool

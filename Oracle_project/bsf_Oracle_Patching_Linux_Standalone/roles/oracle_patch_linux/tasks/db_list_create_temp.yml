@@ -1,0 +1,85 @@
+---
+# This playbook will perform below operations:
+# 1. Verify Oracle Database Home information from oratab file on the endpoints
+# 2. Create Temp folder on the endpoint to proceed for Oracle PSU Patching activity
+
+- name: Block to verify Oracle Database Home information from oratab file
+  block:
+    - name: DB SI | get list of Database Home on endpoint
+      shell: cat {{ oratab_path }}|grep {{ ora_home }}|egrep ':N|:Y'|grep -v \*|grep -v "\#"|cut -f2 -d':'
+      register: dblist
+      failed_when: (dblist.rc != 0) or (dblist.stdout == "")
+  rescue:
+    - name: set facts - turn flag flase for variables
+      set_fact:
+        unarchive_patch_file_required: false
+        ora_opatch_utility_unzip_required: false
+        ora_gather_db_info: false
+        ora_unarchive_process_proceed: false
+        ora_backup_required: false
+
+    - name: print fail msg for list database under oratab
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          DB SID and Home entry missing or commented in Oratab file.
+          No record found in oratab file for Oracle Home: {{ ora_home }}
+
+    - name: Returncode for dblist under oratab validation
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 301
+        rc_message: |
+          {{ fail_message }}
+          DB SID and Home entry missing in Oratab file.
+          No record found in oratab file for Oracle Home:
+          {{ ora_home }}
+
+- name: Block to create Temp folder on the endpoint
+  block:
+    - name: Create temp directory on the endpoints
+      file:
+        path: "{{ ora_tempdir }}"
+        state: directory
+        recurse: true
+        owner: "{{ oracleuser }}"
+        group: "{{ oraclegroup }}"
+      register: ora_temp_create
+      become: yes
+      failed_when: (ora_temp_create is undefined) or (ora_temp_create.path | length == 0)
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_unarchive_process_proceed: true
+
+  rescue:
+    - name: set facts - turn flag flase for variables
+      set_fact:
+        unarchive_patch_file_required: false
+        ora_opatch_utility_unzip_required: false
+        ora_gather_db_info: false
+
+    - name: print fail msg for temp creation on endpoint
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while creation of temp directory on endpoint.
+          Temp creation error: {{ ora_temp_create }}
+
+    - name: Returncode for temp creation failure
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 302
+        rc_message: |
+          {{ fail_message }}
+          Error while performing Temp directory creation on endpoint.
+          Tempfile creation error:
+          {{ ora_temp_create }}
+
+  when: (dblist.rc == 0) and (dblist.stdout != "")

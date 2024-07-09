@@ -1,0 +1,5 @@
+---
+db2vpath: /opt/IBM/db2/V11.5.8
+db2sw: special_23839_v11.5.8_linuxx64_universal_fixpack.tar.gz
+swtype: universal
+binariesdir: /igs_swdepot/igs/MidrangeDBAServices/DB2/v11.5.8

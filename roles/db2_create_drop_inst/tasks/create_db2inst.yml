@@ -1,0 +1,38 @@
+---
+    - name: Copy - db2instance creation
+      copy: src="create_db2inst.sh" dest="/tmp/create_db2inst.sh" mode='0755'
+      tags: copyfile
+
+    - name: "Create - DB2 Instance Home Directory"
+      file: path="/db/home/{{ item }}" state='directory' owner="{{ item }}" group="{{ instgrp }}" mode='0755'
+      with_items: 
+          - "{{ instid }}"
+          - "{{ fencid }}"
+      tags: createdirs
+
+    - name: Add - Instance port number to /etc/services
+      lineinfile:
+          path: /etc/services
+          line: "db2c_{{ instid }}    {{ instport }}/tcp               #DB2 Instance Communication port"
+      tags: addport
+
+    - name: Create - DB2 Instance
+      shell: |
+              DB2VPATH="{{ db2vpath }}"
+              if [[ $(ls -A ${DB2VPATH}) ]]; then
+                {{ db2vpath }}/instance/db2icrt -s ESE -u {{ fencid }} {{ instid }} > {{ logsdir }}/{{ instid }}_db2icrt.log 2>&1
+                chmod 666 {{ logsdir }}/{{ instid }}_db2icrt.log
+              else
+                echo "Error: ${DB2VPATH} is Empty, Please check"
+              fi
+      tags: createinst
+
+    - name: Configure - DB2 Instance
+      command: "/tmp/create_db2inst.sh {{ instid }}"
+      become: true
+      become_user: "{{ instid }}"
+      tags: createinst
+
+    - name: Remove - Create instance script
+      file: path="/tmp/create_db2inst.sh" state=absent
+      tags: removefile

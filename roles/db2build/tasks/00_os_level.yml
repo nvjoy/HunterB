@@ -1,0 +1,15 @@
+---
+    - name: Create DB2 instance group
+      group:
+        name: "{{ instance_group }}"
+        state: present
+
+    - name: Create instance and fenced users
+      user:
+        name: "{{ item.name }}"
+        group: "{{ instance_group }}"
+        password: "{{ 'db2' | password_hash('sha512') }}"
+        state: present
+      with_items:
+        - { name: "{{ instace_user }}" }
+        - { name: "{{ fenced_user }}" }

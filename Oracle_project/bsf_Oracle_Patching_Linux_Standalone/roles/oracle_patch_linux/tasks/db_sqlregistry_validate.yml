@@ -1,0 +1,42 @@
+---
+# This playbook will perform below operations:
+# 1. Verify the Patch details from the SQLPATCH registry
+
+- name: Block to Verify the Patch details from the SQLPATCH registry
+  block:
+    - name: Verify the Patch details from the SQLPATCH registry
+      oraclepatch:
+        oratask: getdbsqlpatchregistry
+        dbdict: "{{ ora_database_dict }}"
+        oratemp: "{{ ora_tempdir }}"
+      register: getdbsqlpatchregistry_output
+      become: yes
+      become_user: "{{ oracleuser }}"
+
+    - name: set facts - turn flag true/false for variables
+      set_fact:
+        ora_patch_apply_proceed: false
+        ora_psu_patch_suceeded: true
+  rescue:
+    - name: print fail msg for Verify the Patch details from the SQLPATCH registry
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while fetching patch details from Database.
+          Check logfile for further details and take action accordingly
+          Error message for sqlpatch_registry:
+          {{ getdbsqlpatchregistry_output.stdout_lines | to_yaml | replace('\\t','') | replace('\t','') }}
+
+    - name: Returncode for Verify the Patch details from the SQLPATCH registry
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 318
+        rc_message: |
+          {{ fail_message }}
+          Error while fetching patch details from Database.
+          Check logfile for further details and take action accordingly
+          Error message for sqlpatch_registry:
+          {{ getdbsqlpatchregistry_output.stdout_lines | to_yaml | replace('\\t','') | replace('\t','') }}

@@ -1,0 +1,16 @@
+---
+#######################################################
+##  Do not change below values until really needed   ##
+#######################################################
+
+db2_dirs: 
+    - /db2data
+    - /db2maint
+
+
+dirstocreate:
+    - "{{ tgtdir }}"
+    - "{{ tgtdir }}/logs"
+
+scriptsdir: "{{ tgtdir }}/scripts"
+logsdir: "{{ tgtdir }}/logs"

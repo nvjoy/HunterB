@@ -1,0 +1,36 @@
+---
+    - name: Copy DB2 binaries to target directory
+      copy:
+        src: "{{ db2_software_path }}/{{ db2_binary }}"
+        dest: "{{ tgtdir }}/{{ db2_binary }}"
+      tags: copydb2binaries
+
+    - name: Untar DB2 binaries
+      unarchive:
+        src: "{{ tgtdir }}/{{ db2_binary }}"
+        dest: "{{ tgtdir }}"
+        remote_src: yes
+      tags: untardb2binaries
+
+    - name: Install DB2 software
+      shell: |
+              INSTALL_TSAMP="{{ install_tsamp }}"
+              if [[ "INSTALL_TSAMP" == "yes" ]]; then
+                {{ tgtdir }}/{{ db2sw_type }}/db2_install -b /opt/IBM/db2/{{ db2ver }} -p SERVER -y -n -l {{ logsdir }}/db2_install_{{ inventory_hostname }}.log 2>&1
+              else
+                {{ tgtdir }}/{{ db2sw_type }}/db2_install -b /opt/IBM/db2/{{ db2ver }} -p SERVER -f NOTSAMP -y -n -l {{ logsdir }}/db2_install_{{ inventory_hostname }}.log 2>&1
+              fi
+      args:
+        executable: /bin/bash
+      async: 3600
+      poll: 0
+      register: db2install_check
+      tags: installdb2
+
+    - name: Monitor db2 Installation job
+      async_status:
+        jid: "{{ db2install_check.ansible_job_id }}"
+      register: db2install_RESULT
+      until: db2install_RESULT.finished
+      retries: 60
+      delay: 60

@@ -1,0 +1,68 @@
+---
+# This playbook is to perform Oracle PSU patching on Linux endpoints for standalone servers
+# 1. Set returncode role properties
+# 2. Valdiate Tower and slack Credentials
+# 3. Establish server sock tunnel Connection
+# 4. Obtain credentials from Cyberark Vault
+# 5. Perform Oracle PSU Patching on standalone servers
+# 6. Send notification to slack channel with Slack notification role
+
+- name: Set Return code job properties and credentials validation
+  hosts: localhost
+  tasks:
+    - name: Set return code job properties
+      include_role:
+        name: returncode
+        tasks_from: set_job_properties
+      vars:
+        asset_name: "Oracle Standalone Patching"
+        documentation:
+          default: "https://github.kyndryl.net/CACF-NA-Windstream/ansible_collection_linux_oracle_standalone"
+
+- name: Block to perform Oracle DB connection and Patching activity
+  gather_facts: false
+  hosts: all
+  vars:
+    acc_id: "bsf"
+    blueid_shortcode: "bsf"
+    trans_num: "{{ tower_job_id }}"
+    transaction_id: "{{ tower_job_id }}"
+  tasks:
+    - name: Block to perform Oracle DB connection and Patching activity
+      block:
+        - name: Establish socks tunnel and obtain credentials from cyberark vault
+          block:
+            - include_role:
+                name: ansible-role-event-socks-tunnel
+          delegate_to: localhost
+# Oracle PATCH apply role
+        - name: Standalone Oracle Database PSU patching for Linux
+          block:
+            - name: Oracle Standalone Patching
+              include_role:
+                name: oracle_patch_linux
+                apply:
+                  become: true
+                  become_method: "sudo"
+
+        - name: Slack Notification role
+          block:
+            - name: Notifying on slack channel
+              include_role:
+                name: oracle_patch_linux
+                tasks_from: slack_notification.yml
+              vars:
+                slack_message: |
+                  {{ exec_message | to_yaml }}
+                slack_workflow_url: "{{ slack_webhook_url }}"
+          rescue:
+            - name: Returncode for Notifying on slack
+              include_role:
+                name: returncode
+              vars:
+                rc_support: "account"
+                rc_group: "misconfiguration"
+                rc_number: 103
+                rc_message: "Slack notification role failed"
+          delegate_to: localhost
+          when: slack_notification | bool

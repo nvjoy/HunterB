@@ -1,0 +1,137 @@
+---
+# This playbook includes below operations:
+# 1. Gather and validate DB and listener information from the oratab file and Oracle binaries
+# 2. Gather and validate DB information from data dictionary
+# 3. Gather and validate Patch information from Database
+- name: Block to get configured DB and listener information
+  block:
+    - name: Gather and validate DB information from the oratab file and Oracle binaries
+      changed_when: no
+      oraclepatch:
+        oratask: getdb
+        dbhomeloc: "{{ ora_home }}"
+      register: oradb
+      become: yes
+      become_user: "{{ oracleuser }}"
+      failed_when: (oradb is undefined) or ('not supported' in oradb.msg) or
+                   ('Unable get database info from /etc/oratab' in oradb.msg) or
+                   ('Failed' in oradb.msg)
+
+    - name: set databse dictionary variable
+      set_fact:
+        ora_database_dict: "{{ oradb.stdout }}"
+
+    - name: Gather and validate listener information from the oratab file and Oracle binaries
+      changed_when: no
+      oraclepatch:
+        oratask: getlistener
+        oratemp: "{{ ora_tempdir }}"
+        dbhomeloc: "{{ ora_home }}"
+      register: oralistener
+      become: yes
+      become_user: "{{ oracleuser }}"
+
+    - name: set listener dictionary variable
+      set_fact:
+        ora_listener_dict: "{{ oralistener.stdout }}"
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_gatherdb_details_proceed: true
+  rescue:
+    - name: print fail msg for Gather and validate Database information from the oratab file and Oracle binaries
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while gathering information from oratab file. Verify logfile for more information
+          {{ oradb.msg }}
+
+    - name: Returncode for Gather and validate DB information from the oratab file and Oracle binaries
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 305
+        rc_message: |
+          {{ fail_message }}
+          Error while gathering information from oratab file.
+          Error:
+          {{ oradb.msg }}
+
+- name: Block to Gather and validate DB information from data dictionary
+  block:
+    - name: Gather and validate DB information from data dictionary
+      oraclepatch:
+        oratask: getdbinfo
+        dbdict: "{{ ora_database_dict }}"
+        oratemp: "{{ ora_tempdir }}"
+      register: oradbinfo
+      become: yes
+      become_user: "{{ oracleuser }}"
+      failed_when: (oradbinfo is undefined) or ('OPEN' not in oradbinfo.stdout)
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_pre_patch_validate_proceed: true
+  rescue:
+    - name: print fail msg for Gather and validate DB information from data dictionary
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Oracle Database not in Open state. Verify the error in logfile and bring database to Open mode.
+          {{ oradbinfo.msg }}
+
+    - name: Returncode for Gather and validate DB information from data dictionary
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 306
+        rc_message: |
+          {{ fail_message }}
+          Oracle Database not in Open state. Verify the error in logfile and bring database to Open mode.
+          Error:
+          {{ oradbinfo.msg }}
+
+  when: ora_gatherdb_details_proceed | bool
+
+- name: Block for Gather and validate Patch information from Database - PrePatch Validation
+  block:
+    - name: Gather and validate Patch information from Database PrePatch Validation
+      oraclepatch:
+        oratask: prepatch
+        dbdict: "{{ ora_database_dict }}"
+        patchdir: "{{ ora_patchdir }}"
+      register: prepatch
+      become: yes
+      become_user: "{{ oracleuser }}"
+      failed_when: (prepatch is undefined) or ('passed' not in prepatch.msg)
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_invalid_check_proceed: true
+
+  rescue:
+    - name: print fail msg for Gather and validate Patch information from Database PrePatch Validation
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while performing PrePatch validation. Verify logfile for more information
+          {{ prepatch.msg }}
+
+    - name: Returncode for Gather and validate Patch information from Database PrePatch Validation
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 307
+        rc_message: |
+          {{ fail_message }}
+          Error while performing PrePatch validation. Verify logfile for more information
+          Error for PrePatch validation:
+          {{ prepatch.msg }}
+
+  when: (ora_gatherdb_details_proceed | bool) and (ora_pre_patch_validate_proceed | bool)

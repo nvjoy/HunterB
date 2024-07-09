@@ -1,0 +1,90 @@
+---
+    - set_fact:
+          scripttorun: db2_backup_report.sh
+      tags: always
+
+    - name: Create Local Directory
+      local_action: 
+          module: file
+          path: /tmp/db2bkpreports/nps
+          state: directory
+          mode: 0777
+      become: false
+      run_once: true
+      tags: createlocdir
+    
+    - name: Copy - Script to target node
+      template: src="{{ scripttorun }}" dest="{{ logsdir }}/{{ scripttorun }}" mode=0755
+      tags: copy
+
+    - name: "Run - Script - \"{{ scripttorun }}\""
+      shell: |
+              TGTUSR="{{ item }}"
+              perl -p -i -e 's/\r//g' {{ logsdir }}/{{ scripttorun }}
+              su ${TGTUSR} -c "{{ logsdir }}/{{ scripttorun }} ${TGTUSR}"
+      #become: True
+      #become_user: "{{ item }}"
+      #become_method: sudo
+      loop: "{{ db2ilist.stdout_lines }}"
+      tags: runscript
+
+    - name: Fetch report files from all servers to reporting server
+      fetch: 
+        src: "{{ logsdir }}/daily_report_{{ item }}.final" 
+        dest: "/tmp/db2bkpreports/nps/daily_report_{{ item }}_{{ inventory_hostname }}.final" 
+        flat: yes
+      loop: "{{ db2ilist.stdout_lines }}"
+      tags: fetchfiles
+
+    - command: date +'%Y%m%d%H%M%S'
+      register: timestamp
+      tags: always
+    
+    - set_fact:
+        curtmstmp: "{{ timestamp.stdout }}"
+        finalreport: "/tmp/db2bkpreports/nps/finalreport_{{ timestamp.stdout }}.txt"
+      tags: always
+
+    - name: Consolidate report
+      local_action: 
+        module: script 
+        cmd: "gen_report.sh {{ finalreport }} /tmp/db2bkpreports/nps"
+        args:
+          executable: /bin/bash
+      register: cmdout
+      become: false
+      run_once: true
+
+    - name: Copy - Final report file to report server
+      copy:
+        src: "{{ finalreport }}"
+        dest: /tmp/final_report_nps.txt
+      delegate_to: "{{ reportsserver }}"
+      become: false
+      run_once: true
+
+    - name: Send - mail
+      shell: |
+              mail -s "DB2 LUW - Backup Report - $(date +'%Y-%m-%d')" {{ mailto }} < /tmp/final_report_nps.txt
+              if [[ ! -d /db/exp/ansible/bkp_reports ]]; then mkdir -p /db/exp/ansible/bkp_reports; fi
+              cat /tmp/final_report_nps.txt
+              mv /tmp/final_report_nps.txt /db/exp/ansible/bkp_reports/final_report_$(date +'%Y%m%d%H%M%S').txt
+      args:
+        executable: /bin/bash
+      register: shout
+      delegate_to: "{{ reportsserver }}"
+      run_once: true
+
+    - name: Remove - Local Directory
+      local_action: 
+          module: file
+          path: /tmp/db2bkpreports/nps
+          state: absent
+      become: false
+      run_once: true
+      tags: removedir
+
+    - name: Final Output
+      debug: msg="{{ shout.stdout_lines}}"
+      run_once: true
+      tags: finalout

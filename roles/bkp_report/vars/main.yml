@@ -1,0 +1,9 @@
+---
+target_server: all
+logsdir: /db/exp/ansible/bkp_reports
+dbname: all
+reportdays: 10
+mailto: "{{ '' | default('') }}"
+tgtenv: purescale
+reportsserver: "{{ '' | default('') }}"
+reportsdir: /db/exp/ansible/bkp_reports

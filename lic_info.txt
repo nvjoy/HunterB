@@ -1,0 +1,36 @@
+## DB2 License Information
+    DB2LIC_CNT=$(db2licm -l | grep -i "Product name:" | wc -l)
+
+    DB2_PERFORMANCE_MANAGEMENT_LICENSE=$(db2licm -l | grep -i "IBM DB2 Performance Management" |  awk -F ":              " '{print $2}' | sed 's/"//g')
+    DB2_OEM_LICENSE=$(db2licm -l | grep -i "IBM DB2 OEM" | awk -F ":                    " '{print $2}' | sed 's/"//g')
+    if [[ -z ${DB2_OEM_LICENSE} ]]; then
+        DB2_OEM_LICENSE="Not licensed"
+    fi
+
+    if [[ ${DB2LIC_CNT} -eq 1 ]]; then
+        DB2_PRODUCT_NAME=$(db2licm -l | grep -i "Product name:" | awk -F "\"" '{print $2}')
+        DB2_LICENSE_TYPE=$(db2licm -l | grep -i "License type:" | awk -F "\"" '{print $2}')
+        DB2_LICENSE_EXP_DATE=$(db2licm -l | grep -i "Expiry date:" | awk -F "\"" '{print $2}')
+        DB2_PRODUCT_IDENTIFIER=$(db2licm -l | grep -i "Product identifier:" | awk -F "\"" '{print $2}')
+        DB2_VERSION=$(db2licm -l | grep -i "Version information:" | awk -F "\"" '{print $2}')
+    
+	    echo "INSERT INTO METRICS.LICENSE_INFO (HOST_NAME, DB2_INSTANCE, DB2_PRODUCT_NAME, DB2_LICENSE_TYPE, DB2_LICENSE_EXP_DATE, DB2_PRODUCT_IDENTIFIER, DB2_VERSION, DB2_OEM_LICENSE, DB2_PERFORMANCE_MANAGEMENT_LICENSE, DOMAIN_NAME, SAM_VERSION,CT_VERSION,SAM_LICM_EXP_DATE,MIXEDVERSIONS) VALUES ('${HNAME}','${DB2INST}','${DB2_PRODUCT_NAME}', '${DB2_LICENSE_TYPE}', '${DB2_LICENSE_EXP_DATE}', '${DB2_PRODUCT_IDENTIFIER}', '${DB2_VERSION}', '${DB2_OEM_LICENSE}', '${DB2_PERFORMANCE_MANAGEMENT_LICENSE}', '${DOMAIN_NAME}', '${SAM_VERSION}', '${CT_VERSION}', '${SAM_LICM_EXP_DATE}', '${MIXEDVERSIONS}');" >> ${SQLFILE}
+    else
+        DB2_PRODUCT_NAME=$(db2licm -l | grep -i "Product name:" | awk -F "\"" '{print $2}' | head -1)
+        DB2_LICENSE_TYPE=$(db2licm -l | grep -i "License type:" | awk -F "\"" '{print $2}' | head -1)
+        DB2_LICENSE_EXP_DATE=$(db2licm -l | grep -i "Expiry date:" | awk -F "\"" '{print $2}' | head -1)
+        DB2_PRODUCT_IDENTIFIER=$(db2licm -l | grep -i "Product identifier:" | awk -F "\"" '{print $2}' | head -1)
+        DB2_VERSION=$(db2licm -l | grep -i "Version information:" | awk -F "\"" '{print $2}' | head -1)
+    
+	    echo "INSERT INTO METRICS.LICENSE_INFO (HOST_NAME, DB2_INSTANCE, DB2_PRODUCT_NAME, DB2_LICENSE_TYPE, DB2_LICENSE_EXP_DATE, DB2_PRODUCT_IDENTIFIER, DB2_VERSION, DB2_OEM_LICENSE, DB2_PERFORMANCE_MANAGEMENT_LICENSE, DOMAIN_NAME, SAM_VERSION,CT_VERSION,SAM_LICM_EXP_DATE,MIXEDVERSIONS) VALUES ('${HNAME}','${DB2INST}','${DB2_PRODUCT_NAME}', '${DB2_LICENSE_TYPE}', '${DB2_LICENSE_EXP_DATE}', '${DB2_PRODUCT_IDENTIFIER}', '${DB2_VERSION}', '${DB2_OEM_LICENSE}', '${DB2_PERFORMANCE_MANAGEMENT_LICENSE}', '${DOMAIN_NAME}', '${SAM_VERSION}', '${CT_VERSION}', '${SAM_LICM_EXP_DATE}', '${MIXEDVERSIONS}');" >> ${SQLFILE}
+
+        DB2_PRODUCT_NAME2=$(db2licm -l | grep -i "Product name:" | awk -F "\"" '{print $2}' | tail -1)
+        DB2_LICENSE_TYPE2=$(db2licm -l | grep -i "License type:" | awk -F "\"" '{print $2}' | tail -1)
+        DB2_LICENSE_EXP_DATE2=$(db2licm -l | grep -i "Expiry date:" | awk -F "\"" '{print $2}' | tail -1)
+        DB2_PRODUCT_IDENTIFIER2=$(db2licm -l | grep -i "Product identifier:" | awk -F "\"" '{print $2}' | tail -1)
+        DB2_VERSION2=$(db2licm -l | grep -i "Version information:" | awk -F "\"" '{print $2}' | tail -1)
+
+        echo "INSERT INTO METRICS.LICENSE_INFO (HOST_NAME, DB2_INSTANCE, DB2_PRODUCT_NAME, DB2_LICENSE_TYPE, DB2_LICENSE_EXP_DATE, DB2_PRODUCT_IDENTIFIER, DB2_VERSION, DB2_OEM_LICENSE, DB2_PERFORMANCE_MANAGEMENT_LICENSE, DOMAIN_NAME, SAM_VERSION,CT_VERSION,SAM_LICM_EXP_DATE,MIXEDVERSIONS) VALUES ('${HNAME}','${DB2INST}','${DB2_PRODUCT_NAME2}', '${DB2_LICENSE_TYPE2}', '${DB2_LICENSE_EXP_DATE2}', '${DB2_PRODUCT_IDENTIFIER2}', '${DB2_VERSION2}', '${DB2_OEM_LICENSE}', '${DB2_PERFORMANCE_MANAGEMENT_LICENSE}', '${DOMAIN_NAME}', '${SAM_VERSION}', '${CT_VERSION}', '${SAM_LICM_EXP_DATE}', '${MIXEDVERSIONS}');" >> ${SQLFILE}
+    fi
+    ## Delete data which is older than a year.
+    echo "DELETE FROM METRICS.LICENSE_INFO WHERE DATE(ROW_INSERT_TIMESTAMP) <= CURRENT DATE - 360 DAYS;" >> ${SQLFILE}

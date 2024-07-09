@@ -1,0 +1,23 @@
+---
+    - include_tasks: 00_os_level.yml
+      tags: os_level
+
+    - include_tasks: 01_preflight.yml
+      when: create_dirs | bool
+      tags: preflight
+
+    - include_tasks: 02_install_db2.yml
+      when: install_db2 | bool
+      tags: install
+
+    - include_tasks: 03_create_inst.yml
+      when: create_inst | bool
+      tags: create_inst
+
+    - include_tasks: 04_configure_inst.yml
+      when: configure_inst | bool
+      tags: configure_inst
+
+    - include_tasks: 05_create_configure_db.yml
+      when: create_config_db | bool
+      tags: createdb

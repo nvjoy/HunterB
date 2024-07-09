@@ -1,0 +1,65 @@
+---
+# This playbook is to validate Tower credentials
+
+- name: Tower credential validation
+  block:
+    - name: ansible_limit field validation
+      set_fact:
+        is_localhost_in_scope: "{{ (not (ansible_limit is defined))
+                              or ('localhost' in ansible_limit) }}"
+      failed_when: not(is_localhost_in_scope | bool)
+  rescue:
+    - name: Print fail status for ansible_limit field validation
+      set_fact:
+        exec_message: |
+          Error: ansible_limit or localhost entry missing in Job LIMIT field in Template
+      when: not(is_localhost_in_scope | bool)
+
+    - name: Returncode to validate ansible_limit field
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 101
+        rc_message: |
+          Error: ansible_limit or localhost entry missing in Job LIMIT field in Template
+      when: not(is_localhost_in_scope | bool)
+
+    - name: set cancel_execution to true
+      set_fact:
+        cancel_execution: true
+
+- name: Block to validate tower credentials
+  block:
+    - name: Tower credentials validation
+      set_fact:
+        tower_user: "{{ lookup('env','TOWER_USERNAME') }}"
+        tower_pass: "{{ lookup('env','TOWER_PASSWORD') }}"
+      no_log: true
+      register: Tower_cred_check
+      failed_when:
+        - tower_user|length < 1
+        - tower_pass|length < 1
+
+  rescue:
+    - name: Print fail status for Tower credential validation
+      set_fact:
+        exec_message: |
+          Error: Tower Credentials not provided in Job Template
+
+    - name: Returncode to validate Tower credentials
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 102
+        rc_message: |
+          Error: Tower Credentials not provided in Job Template
+
+    - name: set cancel_execution to true
+      set_fact:
+        cancel_execution: true
+
+  when: (is_localhost_in_scope | bool)

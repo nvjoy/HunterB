@@ -1,0 +1,19 @@
+---    
+    - name: Display play_hosts
+      debug: 
+        msg: "{{ play_hosts }}"
+      run_once: true
+      tags: always
+
+    - name: Create - Directory Structure
+      file: path="{{ item }}" state='directory' owner='{{ instance_user }}' group="{{ instance_group }}" mode='0755'
+      with_items: 
+        - "{{ dirstocreate }}"
+        - "{{ db2_dirs }}"
+      tags: createdirs
+
+    - name: Add - Instance port number to /etc/services
+      lineinfile:
+          path: /etc/services
+          line: "db2c_{{ instance_user }}    {{ instance_port }}/tcp               #DB2 Instance Communication port"
+      tags: addport

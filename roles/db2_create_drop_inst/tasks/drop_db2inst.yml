@@ -1,0 +1,75 @@
+---
+    - name: Copy - db2instance creation
+      copy: src="drop_db2inst.sh" dest="/tmp/drop_db2inst.sh" mode='0755'
+      tags: copyfile
+
+    - name: Block to Run as Instace user (Drop db2 instance)
+      block:
+        - name: Stop monitoring and drop database and stop db2 instance
+          command: "/tmp/drop_db2inst.sh {{ insttodrop }}"
+          become: true
+          become_user: "{{ insttodrop }}"
+
+        - name: Drop - Db2 Instace
+          shell: |
+                  DB2INST="{{ insttodrop }}"
+                  if [[ $(cat /tmp/${DB2INST}.db.lst | wc -l) -gt 0 ]]; then
+                    echo "Warning - One or more databases still exist under ${DB2INST}, Please drop them first."
+                    cat /tmp/${DB2INST}.db.lst
+                    exit 0
+                  else
+                    DB2VPATH=$(cat /tmp/db2level_${DB2INST}.txt | grep 'installed'  | awk '{print $5'} | sed "s/..$//g" | sed "s/^.//g" | head -1)
+                    if [[ $(ps -ef | grep -v grep | grep -i ${DB2INST} | grep -i db2sysc | wc -l) -eq 0 ]]; then
+                      echo "Info: Instance not running, trying to drop instance ${DB2INST} from ${DB2VPATH}"
+                      echo "Running ${DB2VPATH}/instance/db2idrop ${DB2INST}"
+                      ${DB2VPATH}/instance/db2idrop ${DB2INST} > /tmp/db2idrop_${DB2INST}.log 2>&1
+                      if [[ $? -ne 0 ]]; then
+                        echo "Error: Unable to drop db2 instance - ${DB2INST}, Please check /tmp/db2idrop_${DB2INST}.log"
+                        chmod 666 /tmp/db2idrop_${DB2INST}.log
+                        cat /tmp/db2idrop_${DB2INST}.log
+                        exit 20
+                      else
+                        chmod 666 /tmp/db2idrop_${DB2INST}.log
+                        cat /tmp/db2idrop_${DB2INST}.log
+                      fi
+                    else
+                      echo "Warning - ${DB2INST} - Instance still running please check"
+                      exit 21
+                    fi
+                  fi
+          args:
+            executable: /bin/bash
+          tags: instdrop
+
+        - name: Remove Instance level file systems
+          shell: |
+                  DB2INST="{{ insttodrop }}"
+                  if [[ $(cat /tmp/${DB2INST}.db.lst | wc -l) -gt 0 ]]; then
+                    echo "Warning - One or more databases still exist under ${DB2INST}, Please drop them first."
+                    cat /tmp/${DB2INST}.db.lst
+                    exit 0
+                  else
+                    function rm_dir {
+                        DIRTORM=$1
+                        if [[ -d ${DIRTORM} ]]; then
+                          rm -rf ${DIRTORM}
+                        fi
+                    }
+
+                    # rm_dir /db/activelog/${DB2INST}
+                    # rm_dir /db/archivelog/${DB2INST}
+                    # rm_dir /db/home/${DB2INST}
+                    # rm_dir db/messagelog/${DB2INST}
+                    # rm_dir /db/overflowlog/${DB2INST}
+                    # rm_dir /db/ts01/${DB2INST}
+                    # rm_dir /db/ts02/${DB2INST}
+                    # rm_dir /db/ts03/${DB2INST}
+                  fi
+          args:
+            executable: /bin/bash
+          become: true
+          become_user: "{{ insttodrop }}"
+
+        - name: Remove - Create instance script
+          file: path="/tmp/drop_db2inst.sh" state=absent
+          tags: removefile

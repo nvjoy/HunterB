@@ -1,0 +1,42 @@
+TESTDB
+192.168.1.10
+192.168.1.13
+DISCONNECTED
+2022-09-03-17.15.29.756347
+PRIMARY
+DISCONNECTED
+NEARSYNC
+2022-09-03-17.24.05.000000
+2022-09-03-17.15.04.000000 
+S0000004.LOG
+S0000004.LOG
+9
+7604 
+2022-09-03-17.25.05.234645
+
+
+                DBNAME=$(echo ${LINE} | awk '{print $1}' | head -1 )
+                PRIMARY_HOST=$(echo ${LINE} | awk '{print $2}' | head -1 )
+                STANDBY_HOST=$(echo ${LINE} | awk '{print $3}' | head -1 )
+                HADR_CONNECT_STATUS=$(echo ${LINE} | awk '{print $4}' | head -1 )
+                HADR_CONNECT_STATUS_TIME=$(echo ${LINE} | awk '{print $5}' | head -1 )
+                HADR_STATE=$(echo ${LINE} | awk '{print $7}' | head -1 )
+                PRIMARY_LOG_TIME=$(echo ${LINE} | awk '{print $9}' | head -1 )
+                STANDBY_LOG_TIME=$(echo ${LINE} | awk '{print $10}' | head -1 )
+                LOG_TIME_DIFF_MIN=$(echo ${LINE} | awk '{print $13}' | head -1 )
+                PRIMARY_LOG_FILE=$(echo ${LINE} | awk '{print $11}' | head -1 )
+                STANDBY_LOG_FILE=$(echo ${LINE} | awk '{print $12}' | head -1 )
+                HADR_LOG_GAP=$(echo ${LINE} | awk '{print $14}' | head -1 )
+db2bbi2@db2host22:~$ db2 "select PRIMARY_MEMBER_HOST,STANDBY_MEMBER_HOST,HADR_CONNECT_STATUS,HADR_ROLE,HADR_STATE,HADR_SYNCMODE,PRIMARY_LOG_TIME,STANDBY_LOG_TIME,PRIMARY_LOG_FILE,STANDBY_LOG_FILE,TIMESTAMPDIFF (4,CHAR(TIMESTAMP(STANDBY_LOG_TIME) - TIMESTAMP(PRIMARY_LOG_TIME))) AS LOG_TIME_DIFF,ROW_INSERT_TIMESTAMP from metrics.hadr_mon"
+
+PRIMARY_MEMBER_HOST                                                                                                                                                                                                                                             STANDBY_MEMBER_HOST                                                                                                                                                                                                                                             HADR_CONNECT_STATUS HADR_ROLE     HADR_STATE              HADR_SYNCMODE PRIMARY_LOG_TIME           STANDBY_LOG_TIME           PRIMARY_LOG_FILE STANDBY_LOG_FILE
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- ------------------- ------------- ----------------------- ------------- -------------------------- -------------------------- ---------------- ----------------
+192.168.1.10                                                                                                                                                                                                                                                    192.168.1.13                                                                                                                                                                                                                                                    CONNECTED           PRIMARY       PEER                    NEARSYNC      2022-08-28-22.08.29.000000 2022-08-28-22.07.50.000000 S0000004.LOG     S0000004.LOG
+192.168.1.10                                                                                                                                                                                                                                                    192.168.1.13                                                                                                                                                                                                                                                    CONNECTED           PRIMARY       PEER                    NEARSYNC      2022-08-28-22.08.29.000000 2022-08-28-22.08.29.000000 S0000004.LOG     S0000004.LOG
+192.168.1.10                                                                                                                                                                                                                                                    192.168.1.13                                                                                                                                                                                                                                                    CONNECTED           PRIMARY       PEER                    NEARSYNC      2022-08-28-22.08.36.000000 2022-08-28-22.08.36.000000 S0000004.LOG     S0000004.LOG
+192.168.1.10                                                                                                                                                                                                                                                    192.168.1.13                                                                                                                                                                                                                                                    CONNECTED           PRIMARY       PEER                    NEARSYNC      2022-08-28-22.08.44.000000 2022-08-28-22.08.44.000000 S0000004.LOG     S0000004.LOG
+192.168.1.10                                                                                                                                                                                                                                                    192.168.1.13                                                                                                                                                                                                                                                    CONNECTED           PRIMARY       PEER                    NEARSYNC      2022-08-28-22.08.59.000000 2022-08-28-22.08.59.000000 S0000004.LOG     S0000004.LOG
+192.168.1.10                                                                                                                                                                                                                                                    192.168.1.13                                                                                                                                                                                                                                                    CONNECTED           PRIMARY       PEER                    NEARSYNC      2022-08-28-22.09.07.000000 2022-08-28-22.09.07.000000 S0000004.LOG     S0000004.LOG
+
+  6 record(s) selected.
+

@@ -1,0 +1,36 @@
+- name: Install Oracle DB server and required packages
+  hosts: all
+  become: yes
+  vars:
+    oracle_version: 19c
+    instance_name: orcl
+    database_name: mydatabase
+  tasks:
+    - name: Install the Oracle repository
+      yum:
+        name: "oracle-database-preinstall-19c"
+        state: present
+
+    - name: Install Oracle DB server
+      yum:
+        name: "oracle-database-{{ oracle_version }}c"
+        state: present
+
+    - name: Create Oracle instance
+      command: "/etc/init.d/oracledb_ORCLCDB-{{ oracle_version }}c configure"
+
+    - name: Update Oracle configuration
+      lineinfile:
+        path: "/opt/oracle/product/{{ oracle_version }}c/dbhome_1/dbs/init{{ instance_name }}.ora"
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      with_items:
+        - { regexp: '^#?memory_target =', line: "memory_target = 1G" }
+        - { regexp: '^#?processes =', line: "processes = 300" }
+        - { regexp: '^#?audit_trail =', line: "audit_trail = NONE" }
+
+    - name: Start Oracle instance
+      command: "sudo -u oracle /opt/oracle/product/{{ oracle_version }}c/dbhome_1/bin/sqlplus / as sysdba <<EOF\nstartup\nEOF"
+
+    - name: Create Oracle database
+      command: "sudo -u oracle /opt/oracle/product/{{ oracle_version }}c/dbhome_1/bin/dbca -silent -createDatabase -gdbName {{ database_name }} -templateName General_Purpose.dbc"

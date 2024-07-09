@@ -1,0 +1,23 @@
+---
+    - shell: |
+              perl -p -i -e 's/\r//g' {{ scriptsdir }}/failover.sh
+              cat /tmp/db2ilist.lst
+      register: db2ilist
+      tags: always
+    
+    - name: Failover db2 databases
+      command: "{{ scriptsdir }}/failover.sh {{ item }}"
+      become: true
+      become_user: "{{ item }}"
+      loop: "{{ db2ilist.stdout_lines }}"
+      tags: failover
+
+    - command: "cat /tmp/vip_validation_final.txt"
+      register: vipout
+      failed_when: vipout.rc > 1
+      tags: failover
+
+    - name: Validate Databases and VIP after Failover
+      debug: msg="{{ vipout.stdout_lines }}"
+      when: vipout.stdout != ''
+      tags: failover

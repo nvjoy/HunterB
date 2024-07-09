@@ -1,0 +1,25 @@
+---
+authors:
+- Ponit Kaur
+dependencies: {}
+description: Oracle Database PSU Patching on standalone server on Linux platform
+issues: "https://github.kyndryl.net/Continuous-Engineering/CACM_Common_Repository/issues"
+license_file: LICENSE.md
+name: ansible_collection_patching_oracle_standalone_linux
+namespace: continuous_engineering
+readme: README.md
+repository: https://github.kyndryl.net/bsf/bsf_Oracle_Patching_Linux_Standalone
+tags:
+- patching
+- linux
+- cacm
+- securitypatchmanagement
+- oracle
+- standalone
+- database
+- psu
+- automation
+- ansible
+- productionready
+- clientdeployable
+version: 1.0.1

@@ -1,0 +1,17 @@
+---
+- name: Block for Slack notification
+  block:
+    - name: slack notification module
+      uri:
+        url: "{{ slack_workflow_url }}"
+        body:
+          message: |
+            {{ exec_message }}
+        body_format: json
+        method: POST
+        return_content: yes
+        follow_redirects: all
+        status_code: [200, 500]
+        validate_certs: false
+        timeout: 60
+      delegate_to: localhost

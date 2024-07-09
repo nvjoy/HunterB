@@ -1,0 +1,61 @@
+---
+# defaults file for oracle-patch-linux-role
+### variables for Oracle user and DB verification
+# Oracle oratab file location
+oratab_path: "/etc/oratab"
+# Oracle user at OS level on the endpoint
+oracleuser: "oracle"
+# Oracle user group at OS level on the endpoint
+oraclegroup: "dba"
+# Oracle home location as mentioned in Oratab file
+ora_home: ""
+### variables for archive process
+# Archive file extension
+archiveextension: "zip"
+# Option to perform unzip PSU Patch file - default is false. Mention "true" if Opatch file is in zipped form
+unarchive_patch_file_required: false
+# Option to perform unzip OPatch utility - default is true.
+ora_opatch_utility_unzip_required: true
+# variables for Oracle Patching modules
+ora_gather_db_info: false
+ora_unarchive_process_proceed: false
+ora_gatherdb_details_proceed: false
+ora_pre_patch_validate_proceed: false
+ora_invalid_check_proceed: false
+ora_dba_registry_validate_proceed: false
+ora_patch_apply_proceed: false
+ora_post_patch_proceed: false
+ora_dba_sqlregistry_validate_proceed: false
+ora_psu_patch_suceeded: false
+ora_stop_listener_proceed: false
+ora_start_listener_proceed: false
+ora_start_database_proceed: false
+# If unarchive_patch_file_required is true, zipped Patch file source location on endpoint
+patch_file_loc_source: ""
+# If unarchive_patch_file_required is true, unzipped Patch file destination location on endpoint
+patch_file_loc_dest: ""
+# Zipped OPatch utility file location on endpoint
+opatchutility_file_location: ""
+### variables for Oracle home and Opatch utility backup
+# Option to perform backup of Oracle Home and OPatch utility on the endpoint. Default is false, mention true if backup is required
+ora_backup_required: false
+# If ora_backup_required is true, option to select the backup location.
+# If set to "default", backup location set to provided Oracle Home
+# If set to "custom", backup will be performed at provided custom path
+ora_backup_loc_input: "default"
+# If ora_backup_loc_input is set to "custom", mention the custom path to backup storage
+ora_backup_loc: ""
+### variables for OPatch details
+# OPatch PSU patch file location
+ora_patchdir: ""
+# Tempfile folder location, this is required to perform Opatch operation
+ora_tempdir: "/tmp/oraansiblepatch_temp"
+# variable for PSU patch apply version
+oracle_psu_patch_version: "ORACLE DATABASE PSU Patch"
+# variable for ora patch id
+ora_logs: "{{ora_tempdir}}/logs"
+# variable for Slack role intergration
+slack_webhook_url: "https://hooks.slack.com/workflows/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"
+slack_notification: false
+cancel_execution: false
+is_localhost_in_scope: false

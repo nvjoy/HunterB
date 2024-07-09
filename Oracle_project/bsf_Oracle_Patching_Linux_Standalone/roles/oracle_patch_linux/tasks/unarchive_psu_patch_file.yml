@@ -1,0 +1,90 @@
+---
+# This playbook will perform below operations:
+# 1. Unarchive Oracle PSU Patch file on the endpoint
+# 2. Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+- name: Block to Unarchive Oracle PSU Patch file on the endpoint
+  block:
+    - name: Unarchive Oracle PSU Patch file under on the endpoint
+      block:
+        - name: Unarchive Oracle PSU Patch file
+          become: yes
+          unarchive:
+            src: "{{ patch_file_loc_source }}"
+            dest: "{{ patch_file_loc_dest }}"
+            owner: "{{ oracleuser }}"
+            remote_src: yes
+          register: ora_patchdirectory_unarchive
+          failed_when: ora_patchdirectory_unarchive is undefined
+
+        - name: set facts - turn flag true for variables
+          set_fact:
+            ora_opatch_utility_unzip_required: true
+      rescue:
+        - name: set facts - turn flag false for variables
+          set_fact:
+            ora_opatch_utility_unzip_required: false
+
+        - name: print fail msg for Unarchive Oracle PSU Patch file on the endpoint
+          set_fact:
+            exec_message: |
+              - "{{ fail_message }}"
+              - "Error while performing Unarchive Oracle PSU Patch file on the endpoint"
+              - "Unzip Patch directory error: {{ ora_patchdirectory_unarchive }}"
+
+        - name: Returncode for Unarchive Oracle PSU Patch file on the endpoint
+          include_role:
+            name: returncode
+          vars:
+            rc_support: "account"
+            rc_group: "misconfiguration"
+            rc_number: 303
+            rc_message: |
+              "{{ fail_message }}"
+              Error while performing Unarchive Oracle PSU Patch file on the endpoint
+              Unzip Patch directory error:
+              "{{ ora_patchdirectory_unarchive }}"
+
+- name: Block to Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+  block:
+    - name: Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+      become: yes
+      unarchive:
+        src: "{{ opatchutility_file_location }}"
+        dest: "{{ ora_home }}"
+        mode: 0755
+        owner: "{{ oracleuser }}"
+        remote_src: yes
+      register: ora_opatchutility_unarchive
+      failed_when: ora_opatchutility_unarchive is undefined
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_opatch_utility_unzip_required: false
+        ora_gather_db_info: true
+
+  rescue:
+    - name: set facts - turn flag flase for variables
+      set_fact:
+        ora_opatch_utility_unzip_required: false
+
+    - name: print fail msg for Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while performing Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+          Unzip OPatch error: {{ ora_opatchutility_unarchive }}
+
+    - name: Returncode for Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 304
+        rc_message: |
+          {{ fail_message }}
+          Error while performing Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+          Unzip OPatch utility error:
+          {{ ora_opatchutility_unarchive }}
+
+  when: ((ora_patchdirectory_unarchive is defined) and (ora_opatch_utility_unzip_required | bool))

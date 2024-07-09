@@ -1,0 +1,291 @@
+---
+# This playbook will perform below operations:
+# 1. Stop Database on the endpoints
+# 2. Stop Listener on the endpoints
+# 3. Perform Oracle PSU Patch apply on the the endpoints
+# 4. Start Database on the endpoints
+# 5. Perform Oracle PSU Post Patch operation (Database -verbose) on the endpoints
+# 6. Start Listener on the endpoints
+
+- name: Stop Database on the endpoints
+  block:
+    - name: Stop Database on the endpoints
+      oraclepatch:
+        oratask: stopdatabase
+        dbdict: "{{ ora_database_dict }}"
+        oratemp: "{{ ora_tempdir }}"
+      register: stopdatabase
+      become: yes
+      become_user: "{{ oracleuser }}"
+      failed_when: (stopdatabase is undefined) or ('database stopped successfully' not in stopdatabase.msg)
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_stop_listener_proceed: true
+
+  rescue:
+    - name: set facts - turn flag false for variables
+      set_fact:
+        ora_stop_listener_proceed: false
+        ora_patch_apply_proceed: false
+        ora_start_database_proceed: false
+        ora_post_patch_proceed: false
+        ora_start_listener_proceed: false
+        ora_invalid_check_proceed: false
+        ora_dba_sqlregistry_validate_proceed: false
+
+    - name: print fail msg for Stop Database on the endpoints
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while performing Database shutdown.
+          Check logfile for further details and take action accordingly
+          Error message for Database shutdown: {{ stopdatabase.msg }}
+
+    - name: Returncode for Stop Database on the endpoints
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 312
+        rc_message: |
+          {{ fail_message }}
+          Error while performing Database shutdown.
+          Check logfile for further details and take action accordingly
+          Error message for Database shutdown:
+          {{ stopdatabase.msg }}
+
+- name: Stop Listener on the endpoints
+  block:
+    - name: Stop Listener on the endpoints
+      oraclepatch:
+        oratask: stoplistener
+        listenerdict: "{{ ora_listener_dict }}"
+      register: stoplistener
+      become: yes
+      become_user: "{{ oracleuser }}"
+      failed_when: (stoplistener is undefined) or ('listener stopped successfully' not in stoplistener.msg)
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_patch_apply_proceed: true
+
+  rescue:
+    - name: set facts - turn flag false for variables
+      set_fact:
+        ora_patch_apply_proceed: false
+        ora_start_database_proceed: false
+        ora_post_patch_proceed: false
+        ora_start_listener_proceed: false
+        ora_invalid_check_proceed: false
+        ora_dba_sqlregistry_validate_proceed: false
+
+    - name: print fail msg for Stop Listener on the endpoints
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while performing Listener shutdown.
+          Check logfile for further details and take action accordingly
+          Error message for Listener shutdown: {{ stoplistener.msg }}
+
+    - name: Returncode for Stop Listener on the endpoints
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 313
+        rc_message: |
+          {{ fail_message }}
+          Error while performing Listener shutdown.
+          Check logfile for further details and take action accordingly
+          Error message for Listener shutdown:
+          {{ stoplistener.msg }}
+  when: ora_stop_listener_proceed | bool
+
+- name: Block to Perform Oracle PSU Patch apply on the the endpoints
+  block:
+    - name: Perform Oracle PSU Patch apply on the the endpoints
+      oraclepatch:
+        oratask: opatch
+        dbdict: "{{ ora_database_dict }}"
+        patchdir: "{{ ora_patchdir }}"
+      register: opatch
+      become: yes
+      become_user: "{{ oracleuser }}"
+      failed_when: (opatch is undefined) or ('failed' in opatch.msg)
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_start_database_proceed: true
+
+  rescue:
+    - name: set facts - turn flag false for variables
+      set_fact:
+        ora_start_database_proceed: false
+        ora_post_patch_proceed: false
+        ora_start_listener_proceed: false
+        ora_invalid_check_proceed: false
+        ora_dba_sqlregistry_validate_proceed: false
+
+    - name: print fail msg for Oracle PSU Patch apply on the the endpoints
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while performing Oracle PSU Patch apply on the the endpoints
+          Check logfile for further details and take action accordingly
+          Error message for PSU Opatch apply: {{ opatch.msg }}
+
+    - name: Returncode for Oracle PSU Patch apply on the the endpoints
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 314
+        rc_message: |
+          {{ fail_message }}
+          Error while performing Oracle PSU Patch apply on the endpoints
+          Check logfile for further details and take action accordingly
+          Error message for Opatch apply:
+          {{ opatch.msg }}
+
+  when: ora_patch_apply_proceed | bool
+
+- name: Block to perform Start Database activity
+  block:
+    - name: Start Database on the endpoints
+      oraclepatch:
+        oratask: startdatabase
+        dbdict: "{{ ora_database_dict }}"
+        oratemp: "{{ ora_tempdir }}"
+      register: startdatabase
+      become: yes
+      become_user: "{{ oracleuser }}"
+      failed_when: (startdatabase is undefined) or ('database started successfully' not in startdatabase.msg)
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_post_patch_proceed: true
+
+  rescue:
+    - name: set facts - turn flag false for variables
+      set_fact:
+        ora_post_patch_proceed: false
+        ora_start_listener_proceed: false
+        ora_invalid_check_proceed: false
+        ora_dba_sqlregistry_validate_proceed: false
+
+    - name: print fail msg for Start Database on the endpoints
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while performing Database startup.
+          Check logfile for further details and take action accordingly
+          Error message for Database startup: {{ startdatabase.msg }}
+
+    - name: Returncode for Start Database on the endpoints
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 315
+        rc_message: |
+          {{ fail_message }}
+          Error while performing Database startup.
+          Check logfile for further details and take action accordingly
+          Error message for Database startup:
+          {{ startdatabase.msg }}
+
+  when: ora_start_database_proceed | bool
+
+- name: Block to perform Post Patch (Database -verbose) activity
+  block:
+    - name: Perform Oracle PSU Post Patch operation (Database -verbose) on the endpoints
+      oraclepatch:
+        oratask: postpatch
+        dbdict: "{{ ora_database_dict }}"
+      register: postpatch
+      become: yes
+      become_user: "{{ oracleuser }}"
+      failed_when: (postpatch is undefined) or ('Postpatch successfully completed' not in postpatch.msg)
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_start_listener_proceed: true
+
+  rescue:
+    - name: set facts - turn flag false for variables
+      set_fact:
+        ora_start_listener_proceed: false
+        ora_invalid_check_proceed: false
+        ora_dba_sqlregistry_validate_proceed: false
+
+    - name: print fail msg for Oracle PSU Post Patch operation (Database -verbose) on the endpoints
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while performing Oracle PSU Post Patch operation (Database -verbose).
+          Check logfile for further details and take action accordingly
+          Error message for Oracle PSU Post Patch operation: {{ postpatch.msg }}
+
+    - name: Returncode for Oracle PSU Post Patch operation (Database -verbose) on the endpoints
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 316
+        rc_message: |
+          {{ fail_message }}
+          Error while performing Oracle PSU Post Patch operation (Database -verbose)
+          Check logfile for further details and take action accordingly
+          Error message for Oracle PSU Post Patch operation:
+          {{ postpatch.msg }}
+  when: ora_post_patch_proceed | bool
+
+- name: Block to perform Listener activity
+  block:
+    - name: Start Listener on the endpoints
+      oraclepatch:
+        oratask: startlistener
+        listenerdict: "{{ ora_listener_dict }}"
+      register: startlistener
+      become: yes
+      become_user: "{{ oracleuser }}"
+      failed_when: (startlistener is undefined)
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_invalid_check_proceed: true
+
+  rescue:
+    - name: set facts - turn flag false for variables
+      set_fact:
+        ora_invalid_check_proceed: false
+        ora_dba_sqlregistry_validate_proceed: false
+
+    - name: print fail msg for Start Listener on the endpoints
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while performing Listener startup.
+          Check logfile for further details and take action accordingly
+          Error message for Listener startup: {{ startlistener.msg }}
+
+    - name: Returncode for Start Listener on the endpoints
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 317
+        rc_message: |
+          {{ fail_message }}
+          Error while performing Listener startup.
+          Check logfile for further details and take action accordingly
+          Error message for Listener startup:
+          {{ startlistener.msg }}
+  when: ora_start_listener_proceed | bool

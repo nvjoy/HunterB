@@ -1,0 +1,16 @@
+---
+# vars file for db2_build
+tgt_hosts: all
+tgtdir: /db/exp/ansible/inst_crt_drop
+
+## Drop Instance Vars
+dropinst: no
+insttodrop: "{{ '' | default('') }}"
+
+## Crate Instance Vars
+instcreate: no
+instid: "{{ '' | default('db2bbi2') }}"
+fencid: "{{ '' | default('db2udf') }}"
+instgrp: "{{ '' | default('dba') }}"
+instport: "{{ '' | default('50730') }}"
+db2ver: DB2v11.5.7                        #DB2v11.1.4.7,  DB2v11.5.7, DB2v10.5.11

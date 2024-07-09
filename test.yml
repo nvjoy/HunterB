@@ -1,0 +1,104 @@
+---
+  - name: test play
+    hosts: localhost
+    gather_facts: true
+
+    vars:
+      hi: hi
+      hi2:
+        - bhkjk
+        - vbghj
+        - uyrto
+      # cur_date: "{{ ansible_date_time.date }}"
+      group_host: db2test
+
+
+    tasks:
+      - debug:
+          # msg: "{{ '%Y-%m-%d' | strftime }}"
+          msg: "{{ item }}"
+        with_items:
+          - "{{ hi }}"
+          - "{{ cur_date }}"
+
+      - name: Update mksh package cache
+        ansible.builtin.package:
+          name: "{{ item }}"
+          state: present
+        with_items:
+          - mksh
+
+      # - name: Test poll
+      #   command: sleep 1000
+      #   async: 3000
+      #   poll: 0
+      #   tags: polltest
+
+      # - name: Get the first value from the list
+      #   debug:
+      #     msg: "{{ hi2 | first }}"
+
+      - name: Get the first value from the list
+        debug:
+          # msg: "{{ '%Y-%m-%d' | strftime }}"
+          msg: "{{ '%Y-%m-%d'|strftime(ansible_date_time.epoch|int - 86400) }}"
+
+      # - name: Archive all export files into a zip file
+      #   unarchive:
+      #     src: /Users/naveenc/Desktop/MyData/db2luw_nvn/Mohan.tar
+      #     dest: /Users/naveenc/Desktop/MyData/db2luw_nvn/Mohan2/
+      # #     # remote_src: true
+
+      # - name: Archive all export files into a zip file
+      #   archive:
+      #     path: "/Users/naveenc/Desktop/MyData/db2luw_nvn/Mohan"
+      #     dest: "/Users/naveenc/Desktop/MyData/db2luw_nvn/Mohan.tar"
+
+      # - name: Change a line in a file
+      #   lineinfile:
+      #     path: /etc/ssh/sshd_config
+      #     regexp: '^ClientAliveInterval'
+      #     line: 'ClientAliveInterval 0'
+      #     state: present
+
+      # - name: Ensure SSH service is restarted
+      #   service:
+      #       name: sshd
+      #       state: restarted
+
+
+      # - name: get force_upgrade
+      #   set_fact:
+      #     name1: naveen
+      #   when: hi == "hi"
+
+    # - name: Sync Pull task - Executed on  the Destination host "{{groups['app'][1]}}"
+    #   hosts: "{{groups['app'][0]}}"
+    #   user: wlsusr
+    #   tasks:   
+    #     - name: Copy the file from mwiapp01 to mwiapp02 using Method Pull
+    #       tags: sync-pull
+    #       synchronize:
+    #         src: "{{ item }}"
+    #         dest: "{{ item }}"
+    #         mode: pull
+    #       delegate_to: "{{groups['app'][1]}}"
+    #       register: syncfile
+    #       run_once: true
+    #       with_items:
+    #       - "/tmp/app01-to-app02.jar"
+
+    # - name: Sync Push task - Executed on source host "{{groups['app'][0]}}"
+    #   hosts: "{{groups['app'][1]}}" 
+    #   user: wlsusr
+    #   tasks:
+    #     - name: Copy the file from mwiapp01 to mwiapp02 using Method Push
+    #       tags: sync-push
+    #       synchronize:
+    #         src: "{{ item }}"
+    #         dest: "{{ item }}"
+    #         mode: push
+    #       delegate_to: "{{groups['app'][0]}}"
+    #       register: syncfile
+    #       with_items:
+    #       - "/tmp/app01-to-app02.jar"

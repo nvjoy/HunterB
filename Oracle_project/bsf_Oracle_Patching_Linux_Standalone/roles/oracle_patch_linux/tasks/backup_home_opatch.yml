@@ -1,0 +1,117 @@
+---
+# This playbook includes below operations:
+# 1. Backup Oracle Home and Oracle OPatch utility to Default location (ORACLE_HOME)
+# 2. Backup Oracle Home and Oracle OPatch utility to Custom location (user-provided)
+
+- name: Block for Backup Oracle Home and Oracle OPatch utility
+  block:
+    - name: set facts
+      set_fact:
+        timestamp: "{{ lookup('pipe', 'date -u +%Y%m%d%H%M') }}"
+
+    - name: Block to Backup Oracle Home to Default location (ORACLE_HOME) or Custom location (user-provided)
+      block:
+        - name: Backup oracle home at default home location
+          become: yes
+          archive:
+            path: "{{ ora_home }}"
+            dest: "{{ ora_home }}/DBHome_backup-{{timestamp}}.{{ archiveextension }}"
+            owner: "{{ oracleuser }}"
+            group: "{{ oraclegroup }}"
+            mode: 0755
+            format: "{{ archiveextension }}"
+          register: backup_ora_home
+          failed_when: backup_ora_home is undefined
+          when: ora_backup_loc_input == 'default'
+
+        - name: Backup oracle home at custom location
+          become: yes
+          archive:
+            path: "{{ ora_home }}"
+            dest: "{{ ora_backup_loc }}/DBHome_backup-{{timestamp}}.{{ archiveextension }}"
+            owner: "{{ oracleuser }}"
+            group: "{{ oraclegroup }}"
+            mode: 0755
+            format: "{{ archiveextension }}"
+          register: backup_ora_home
+          failed_when: backup_ora_home is undefined
+          when: ora_backup_loc_input == 'custom'
+
+      rescue:
+        - name: set facts - turn flag false for variables
+          set_fact:
+            ora_invalid_check_proceed: false
+
+        - name: print fail msg for Backup Oracle Home Default location (ORACLE_HOME) or Custom location (user-provided)
+          set_fact:
+            exec_message: |
+              {{ fail_message }}
+              Error while performing backup Oracle Home
+              Error: Oracle Home backup: {{ backup_ora_home.msg }}
+
+        - name: Returncode for Backup Oracle Home Default location (ORACLE_HOME) or Custom location (user-provided)
+          include_role:
+            name: returncode
+          vars:
+            rc_support: "account"
+            rc_group: "misconfiguration"
+            rc_number: 308
+            rc_message: |
+               {{ fail_message }}
+               Error while performing backup of Oracle Home.
+               Oracle Home backup error:
+               {{ backup_ora_home.msg }}
+
+    - name: Block to Backup Oracle OPatch utility to Default location (ORACLE_HOME) or Custom location (user-provided)
+      block:
+        - name: Backup oracle opatch utility at default home location
+          become: yes
+          archive:
+            path: "{{ ora_home }}/OPatch"
+            dest: "{{ ora_home }}/Opatch-backup-{{timestamp}}.{{ archiveextension }}"
+            owner: "{{ oracleuser }}"
+            group: "{{ oraclegroup }}"
+            mode: 0755
+            format: "{{ archiveextension }}"
+          register: backup_opatch
+          failed_when: backup_opatch is undefined
+          when: ora_backup_loc_input == 'default'
+
+        - name: Backup oracle opatch utility at custom location
+          become: yes
+          archive:
+            path: "{{ ora_home }}/OPatch"
+            dest: "{{ ora_backup_loc }}/Opatch-backup-{{timestamp}}.{{ archiveextension }}"
+            owner: "{{ oracleuser }}"
+            group: "{{ oraclegroup }}"
+            mode: 0755
+            format: "{{ archiveextension }}"
+          register: backup_opatch
+          failed_when: backup_opatch is undefined
+          when: ora_backup_loc_input == 'custom'
+
+      rescue:
+        - name: set facts - turn flag false for variables
+          set_fact:
+            ora_invalid_check_proceed: false
+
+        - name: print fail msg for Backup Oracle OPatch utility Default location (ORACLE_HOME) or Custom location (user-provided)
+          set_fact:
+            exec_message: |
+              {{ fail_message }}
+              Error while performing backup of OPatch uitlity
+              Error: Oracle OPatch utility backup:
+              {{ backup_opatch.msg }}
+
+        - name: Returncode for Backup Oracle OPatch utility Default location (ORACLE_HOME) or Custom location (user-provided)
+          include_role:
+            name: returncode
+          vars:
+            rc_support: "account"
+            rc_group: "misconfiguration"
+            rc_number: 309
+            rc_message: |
+               {{ fail_message }}
+               Error while performing backup of OPatch uitlity.
+               Error: Oracle OPatch utility backup error:
+               {{ backup_opatch.msg }}

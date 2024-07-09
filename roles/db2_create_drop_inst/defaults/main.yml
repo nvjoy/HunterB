@@ -1,0 +1,11 @@
+---
+#######################################################
+##  Do not change below values until really needed   ##
+#######################################################
+
+dirstocreate:
+    - "{{ tgtdir }}"
+    - "{{ tgtdir }}/logs"
+
+scriptsdir: "{{ tgtdir }}/scripts"
+logsdir: "{{ tgtdir }}/logs"

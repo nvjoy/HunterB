@@ -1,0 +1,46 @@
+    - debug: msg="Play_hosts={{ play_hosts }}"
+      run_once: true
+      tags: always
+
+### Starting - Variables based on version ###
+    - block:
+        - set_fact: 
+              db2vpath: /opt/IBM/db2/V11.5.8
+          when: db2ver == "DB2v11.5.8"
+
+        - set_fact: 
+              db2vpath: /opt/IBM/db2/V11.5/FP7_SB138043
+          when: db2ver == "DB2v11.5.7"
+
+        - set_fact: 
+              db2vpath: /opt/IBM/db2/V11.1/M4FP722
+          when: db2ver == "DB2v11.1.4.7"
+
+        - set_fact: 
+              db2vpath: /opt/IBM/db2/V10.5/FP11_SB41021
+          when: db2ver == "DB2v10.5.11"
+
+        # - include_vars: db2v1157.yml
+        #   when: db2ver == "DB2v10.5.11"
+
+        # - include_vars: db2v10511.yml
+        #   when: db2ver == "DB2v10.5.11"
+      tags: always
+### End - Variables based on version ###
+
+    - name: Copy - Comman functions and variables file
+      template: src="include_db2.sh" dest="/tmp/include_db2" mode='0777'
+      tags: always
+
+    - name: Create - Directory Structure
+      file: path="{{ item }}" state='directory' owner='root' group="{{ instgrp }}" mode='0770'
+      loop: "{{ dirstocreate }}"
+      tags: createdirs
+
+    - name: Instance creation Flow
+      import_tasks: create_db2inst.yml
+      when: instcreate | bool
+
+    - name: Instance Drop - Flow
+      import_tasks: drop_db2inst.yml
+      when: dropinst | bool

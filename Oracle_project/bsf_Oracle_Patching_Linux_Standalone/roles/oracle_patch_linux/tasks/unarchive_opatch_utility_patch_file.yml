@@ -1,0 +1,39 @@
+---
+# This playbook will perform below operations:
+# 1. Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+- name: Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+  block:
+    - name: Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+      become: yes
+      unarchive:
+        src: "{{ opatchutility_file_location }}"
+        dest: "{{ ora_home }}"
+        mode: 0755
+        owner: "{{ oracleuser }}"
+        remote_src: yes
+      register: ora_opatchutility_unarchive
+      failed_when: ora_opatchutility_unarchive is undefined
+
+    - name: set facts - turn flag true for variables
+      set_fact:
+        ora_gather_db_info: true
+  rescue:
+    - name: print fail msg for unzip Opatch utility on endpoint
+      set_fact:
+        exec_message: |
+          {{ fail_message }}
+          Error while performing Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+          Unzip OPatch error: {{ ora_opatchutility_unarchive }}
+
+    - name: Returncode for unzip Opatch utility
+      include_role:
+        name: returncode
+      vars:
+        rc_support: "account"
+        rc_group: "misconfiguration"
+        rc_number: 304
+        rc_message: |
+          {{ fail_message }}
+          Error while performing Unarchive Oracle OPatch utility Patch file under Oracle Home location on the endpoint
+          Unzip OPatch utility error:
+          {{ ora_opatchutility_unarchive }}

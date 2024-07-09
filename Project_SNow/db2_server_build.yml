@@ -1,0 +1,41 @@
+- name: Install DB2 and required packages
+  hosts: 192.168.29.109
+  gather_facts: false
+  become: true
+  become_user: "{{ ansible_user }}"
+  vars:
+    db2_version: 11.5
+    instance_name: db2inst1
+    database_name: mydatabase
+    license_path: ''
+  tasks:
+    - name: Install the DB2 repository
+      yum:
+        name: "https://www.ibm.com/support/pages/download/db2-{{ db2_version }}-linuxx64"
+        state: present
+
+    - name: Install DB2
+      yum:
+        name:
+          - "mksh"
+          - "ibm-db2-{{ db2_version }}-server"
+        state: present
+
+    - name: Create DB2 instance
+      command: "/opt/ibm/db2/V{{ db2_version }}/instance/db2icrt -u db2fenc1 {{ instance_name }}"
+
+    - name: Update DB2 configuration
+      command: "/home/{{ instance_name }}/sqllib/bin/db2 update dbm cfg using SVCENAME 50000"
+
+    - name: Update DB2 registry variables
+      command: "/home/{{ instance_name }}/sqllib/bin/db2set DB2COMM=TCPIP"
+
+    - name: Start DB2 instance
+      command: "/home/{{ instance_name }}/sqllib/adm/db2start"
+
+    - name: Apply DB2 license
+      command: "/opt/ibm/db2/V{{ db2_version }}/adm/db2licm -a {{ license_path }}"
+      when: license_path is defined
+
+    - name: Create the DB2 database
+      command: "/home/{{ instance_name }}/sqllib/bin/db2 create database {{ database_name }}"

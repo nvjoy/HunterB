@@ -1,0 +1,58 @@
+- name: Install PostgreSQL and required packages
+  hosts: all
+  become: yes
+  vars:
+    postgresql_version: 14
+    database_name: mydatabase
+    data_path: /var/lib/pgsql/{{ postgresql_version }}/data
+    archive_path: /var/lib/pgsql/{{ postgresql_version }}/data/archive
+  tasks:
+    - name: Install the PostgreSQL repository
+      yum:
+        name: "https://download.postgresql.org/pub/repos/yum/{{ postgresql_version }}/redhat/rhel-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm"
+        state: present
+
+    - name: Disable the built-in PostgreSQL module
+      command: dnf -qy module disable postgresql
+
+    - name: Install PostgreSQL and required packages
+      yum:
+        name:
+          - "postgresql{{ postgresql_version }}-server"
+          - "postgresql{{ postgresql_version }}"
+          - "postgresql{{ postgresql_version }}-contrib"
+          - "postgresql{{ postgresql_version }}-libs"
+        state: present
+
+    - name: Initialize the PostgreSQL database cluster
+      command: "/usr/pgsql-{{ postgresql_version }}/bin/postgresql-{{ postgresql_version }}-setup initdb"
+
+    - name: Update PostgreSQL configuration
+      lineinfile:
+        path: "{{ data_path }}/postgresql.conf"
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      with_items:
+        - { regexp: '^#?listen_addresses =', line: "listen_addresses = '*'" }
+        - { regexp: '^#?max_connections =', line: "max_connections = 200" }
+        - { regexp: '^#?shared_buffers =', line: "shared_buffers = 256MB" }
+        - { regexp: '^#?archive_mode =', line: "archive_mode = on" }
+        - { regexp: '^#?archive_command =', line: "archive_command = 'cp %p {{ archive_path }}/%f'" }
+
+    - name: Enable and start PostgreSQL service
+      systemd:
+        name: "postgresql-{{ postgresql_version }}"
+        enabled: yes
+        state: started
+
+    - name: Create the PostgreSQL database
+      postgresql_db:
+        name: "{{ database_name }}"
+        state: present
+
+
+
+
+
+
+

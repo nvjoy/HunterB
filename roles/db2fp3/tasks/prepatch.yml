@@ -1,0 +1,11 @@
+---
+    - shell: perl -p -i -e 's/\r//g' {{ scriptsdir }}/prepatch.sh
+    
+    - name: "Running - DB2 Prepatch (Pre Backups to {{ bkpsdir }})"
+      command: "{{ scriptsdir }}/prepatch.sh {{ item }}"
+      register: prepatchcmd
+      become: true
+      become_user: "{{ item }}"
+      failed_when: prepatchcmd.rc > 0
+      loop: "{{ db2ilist.stdout_lines }}"
+      tags: prepatch
